@@ -15,6 +15,6 @@
   "author": "death.au",
   "license": "Apache-2.0",
   "devDependencies": {
-    "web-ext": "^8.2.0"
+    "web-ext": "^8.7.1"
   }
 }
