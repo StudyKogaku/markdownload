@@ -13,17 +13,21 @@ const cm = CodeMirror.fromTextArea(document.getElementById("md"), {
 });
 cm.on("cursorActivity", (cm) => {
     const somethingSelected = cm.somethingSelected();
-    var a = document.getElementById("downloadSelection");
+    var selectionActionButtons = document.getElementById("selectionActionButtons");
 
+    // 変更: 選択範囲がある場合はダウンロードとコピーの両方の選択範囲用ボタンを表示する
     if (somethingSelected) {
-        if(a.style.display != "block") a.style.display = "block";
+        if(selectionActionButtons.style.display != "flex") selectionActionButtons.style.display = "flex";
     }
     else {
-        if(a.style.display != "none") a.style.display = "none";
+        if(selectionActionButtons.style.display != "none") selectionActionButtons.style.display = "none";
     }
 });
 document.getElementById("download").addEventListener("click", download);
 document.getElementById("downloadSelection").addEventListener("click", downloadSelection);
+// 変更: popup上のMarkdown本文をクリップボードへコピーするボタンを追加
+document.getElementById("copy").addEventListener("click", copy);
+document.getElementById("copySelection").addEventListener("click", copySelection);
 
 const defaultOptions = {
     includeTemplate: false,
@@ -209,6 +213,40 @@ async function downloadSelection(e) {
     e.preventDefault();
     if (cm.somethingSelected()) {
         await sendDownloadMessage(cm.getSelection());
+    }
+}
+
+// 変更: CodeMirrorに表示されたMarkdownをクリップボードへコピーする共通処理
+async function copyTextToClipboard(text, button) {
+    if (text == null) return;
+
+    const originalText = button.textContent;
+
+    try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Copied!";
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 1500);
+    }
+    catch (err) {
+        console.error(err);
+        button.textContent = "Copy failed";
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 1500);
+    }
+}
+
+async function copy(e) {
+    e.preventDefault();
+    await copyTextToClipboard(cm.getValue(), e.currentTarget);
+}
+
+async function copySelection(e) {
+    e.preventDefault();
+    if (cm.somethingSelected()) {
+        await copyTextToClipboard(cm.getSelection(), e.currentTarget);
     }
 }
 

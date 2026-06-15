@@ -22,8 +22,15 @@
     <a href="#" class="button toggle" id="includeTemplate"><i class="check"></i>Include front/back template</a>
     <input type="text" id="title"></input>
     <textarea id="md"></textarea>
-    <a href="#" class="button" id="download">Download</a>
-    <a href="#" class="button" id="downloadSelection">Download selected</a>
+    <!-- 変更: 生成済みMarkdownをクリップボードへコピーするためのボタンを追加 -->
+    <div class="row" id="actionButtons">
+      <a href="#" class="button" id="download">Download</a>
+      <a href="#" class="button" id="copy">Copy</a>
+    </div>
+    <div class="row" id="selectionActionButtons">
+      <a href="#" class="button" id="downloadSelection">Download selected</a>
+      <a href="#" class="button" id="copySelection">Copy selected</a>
+    </div>
   </div>
   <div id="spinner"></div>
   <script type="application/javascript" src="../browser-polyfill.min.js"></script>

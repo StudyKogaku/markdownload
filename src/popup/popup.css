@@ -149,8 +149,17 @@ a.button {
     font-size: 1rem;
 }
 
-#downloadSelection {
+/* 変更: 生成済みMarkdownのコピー用ボタンと選択範囲用アクションの表示を追加 */
+#downloadSelection, #copySelection {
     background-color: var(--bg-primary);
+    color: var(--fg);
+}
+
+#actionButtons .button, #selectionActionButtons .button {
+    flex: 1;
+}
+
+#selectionActionButtons {
     display: none;
 }
 
