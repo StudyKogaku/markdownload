@@ -3,6 +3,7 @@
 var selectedText = null;
 var imageList = null;
 var mdClipsFolder = '';
+var isChatGptPage = false;
 
 const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 // set up event handlers
@@ -33,7 +34,8 @@ const defaultOptions = {
     includeTemplate: false,
     clipSelection: true,
     clipFullPage: false,
-    downloadImages: false
+    downloadImages: false,
+    chatgptMode: false
 }
 
 const checkInitialSettings = options => {
@@ -42,6 +44,8 @@ const checkInitialSettings = options => {
 
     if (options.downloadImages)
         document.querySelector("#downloadImages").classList.add("checked");
+
+    document.querySelector("#chatgptMode").classList.toggle("checked", Boolean(options.chatgptMode));
 
     if (options.clipSelection)
         document.querySelector("#selected").classList.add("checked");
@@ -97,6 +101,15 @@ const toggleDownloadImages = options => {
         console.error(error);
     });
 }
+
+const toggleChatGptMode = options => {
+    options.chatgptMode = !options.chatgptMode;
+    document.querySelector("#chatgptMode").classList.toggle("checked", options.chatgptMode);
+    browser.storage.sync.set(options).then(() => clipSite()).catch((error) => {
+        console.error(error);
+    });
+}
+
 const showOrHideClipOption = selection => {
     // 変更: ArticleとFull Pageは常に選べるようにし，選択範囲ボタンだけを切り替える
     document.getElementById("clipOption").style.display = "flex";
@@ -105,7 +118,10 @@ const showOrHideClipOption = selection => {
 
 const clipSite = (id) => {
     return browser.storage.sync.get(defaultOptions).then(options => {
-        return browser.tabs.executeScript(id, { code: "getSelectionAndDom()" })
+        const extractionOptions = JSON.stringify({
+            chatgptMode: Boolean(options.chatgptMode && isChatGptPage)
+        });
+        return browser.tabs.executeScript(id, { code: `getSelectionAndDom(${extractionOptions})` })
             .then((result) => {
                 if (result && result[0]) {
                     showOrHideClipOption(result[0].selection);
@@ -126,7 +142,7 @@ const clipSite = (id) => {
     }).catch(err => {
         console.error(err);
         showError(err);
-        return browser.tabs.executeScript(id, { code: "getSelectionAndDom()" })
+        return browser.tabs.executeScript(id, { code: 'getSelectionAndDom({"chatgptMode":false})' })
             .then((result) => {
                 if (result && result[0]) {
                     showOrHideClipOption(result[0].selection);
@@ -171,6 +187,10 @@ browser.storage.sync.get(defaultOptions).then(options => {
         e.preventDefault();
         toggleDownloadImages(options);
     });
+    document.getElementById("chatgptMode").addEventListener("click", (e) => {
+        e.preventDefault();
+        toggleChatGptMode(options);
+    });
     
     return browser.tabs.query({
         currentWindow: true,
@@ -179,6 +199,8 @@ browser.storage.sync.get(defaultOptions).then(options => {
 }).then((tabs) => {
     var id = tabs[0].id;
     var url = tabs[0].url;
+    isChatGptPage = /^https:\/\/chatgpt\.com\//.test(url) || /^https:\/\/chat\.openai\.com\//.test(url);
+    document.getElementById("siteModeRow").style.display = isChatGptPage ? "flex" : "none";
     browser.tabs.executeScript(id, {
         file: "/browser-polyfill.min.js"
     })

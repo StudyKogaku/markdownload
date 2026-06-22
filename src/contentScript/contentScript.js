@@ -44,6 +44,131 @@ function getHTMLOfDocument() {
     return document.documentElement.outerHTML;
 }
 
+function ensureDocumentMetadata(targetDocument) {
+    const targetHead = targetDocument.head || targetDocument.querySelector('head');
+    if (!targetHead) {
+        return;
+    }
+
+    if (targetHead.getElementsByTagName('title').length == 0) {
+        let titleEl = targetDocument.createElement('title');
+        titleEl.innerText = document.title;
+        targetHead.append(titleEl);
+    }
+
+    let baseEls = targetHead.getElementsByTagName('base');
+    let baseEl;
+
+    if (baseEls.length > 0) {
+        baseEl = baseEls[0];
+    } else {
+        baseEl = targetDocument.createElement('base');
+        targetHead.append(baseEl);
+    }
+
+    let href = baseEl.getAttribute('href');
+
+    if (!href || !href.startsWith(window.location.origin)) {
+        baseEl.setAttribute('href', window.location.href);
+    }
+}
+
+function removeHiddenNodesFromClone(root, sourceRoot) {
+    const clonedNodes = Array.from(root.querySelectorAll('*'));
+    const sourceNodes = Array.from(sourceRoot.querySelectorAll('*'));
+    const nodesToRemove = [];
+
+    sourceNodes.forEach((node, index) => {
+      let nodeName = node.nodeName.toLowerCase();
+      if (nodeName === "script" || nodeName === "style" || nodeName === "noscript" || nodeName === "math") {
+        nodesToRemove.push(clonedNodes[index]);
+        return;
+      }
+      if (node.offsetParent === void 0) {
+        return;
+      }
+      let computedStyle = window.getComputedStyle(node, null);
+      if (computedStyle.getPropertyValue("visibility") === "hidden" || computedStyle.getPropertyValue("display") === "none") {
+        nodesToRemove.push(clonedNodes[index]);
+      }
+    });
+
+    nodesToRemove.forEach(node => node?.remove());
+    return root
+}
+
+function normalizeChatGptCodeBlocks(root, targetDocument) {
+    root.querySelectorAll('button').forEach(button => {
+        const label = button.textContent.trim();
+        if (label === 'Copy code' || label === 'Edit') {
+            button.remove();
+        }
+    });
+
+    root.querySelectorAll('pre').forEach(pre => {
+        if (!pre.firstElementChild || pre.firstElementChild.nodeName !== 'CODE') {
+            const code = targetDocument.createElement('code');
+            code.textContent = pre.textContent;
+            pre.innerHTML = '';
+            pre.appendChild(code);
+        }
+    });
+
+    root.querySelectorAll('code').forEach(code => {
+        if (code.parentElement?.nodeName === 'PRE') {
+            return;
+        }
+
+        const parentText = code.parentElement?.textContent?.trim() || '';
+        const codeText = code.textContent.trim();
+        if (!codeText) {
+            return;
+        }
+
+        const looksLikeStandaloneBlock = parentText === codeText || codeText.includes('\n');
+        if (looksLikeStandaloneBlock) {
+            const pre = targetDocument.createElement('pre');
+            const wrappedCode = targetDocument.createElement('code');
+            wrappedCode.textContent = codeText;
+            pre.appendChild(wrappedCode);
+            code.parentElement.replaceWith(pre);
+        }
+    });
+}
+
+function getHTMLOfChatGptDocument() {
+    const mainSource = document.querySelector('main');
+    if (!mainSource) {
+        return getHTMLOfDocument();
+    }
+
+    const sanitizedDocument = document.implementation.createHTMLDocument(document.title);
+    ensureDocumentMetadata(sanitizedDocument);
+
+    const mainClone = mainSource.cloneNode(true);
+    removeHiddenNodesFromClone(mainClone, mainSource);
+
+    mainClone.querySelectorAll('script, style, noscript').forEach(node => node.remove());
+    mainClone.querySelectorAll('nav, aside, footer').forEach(node => node.remove());
+    mainClone.querySelectorAll('[role="navigation"], [data-testid*="sidebar"]').forEach(node => node.remove());
+    mainClone.querySelectorAll('textarea, [contenteditable="true"], [data-testid*="composer"], form').forEach(node => {
+        if (node.querySelector('textarea, [contenteditable="true"]')) {
+            node.remove();
+        }
+    });
+    mainClone.querySelectorAll('svg').forEach(node => {
+        if (!node.textContent.trim()) {
+            node.remove();
+        }
+    });
+    normalizeChatGptCodeBlocks(mainClone, sanitizedDocument);
+
+    sanitizedDocument.body.innerHTML = '';
+    sanitizedDocument.body.appendChild(mainClone);
+
+    return sanitizedDocument.documentElement.outerHTML;
+}
+
 // code taken from here: https://www.reddit.com/r/javascript/comments/27bcao/anyone_have_a_method_for_finding_all_the_hidden/
 function removeHiddenNodes(root) {
     let nodeIterator, node,i = 0;
@@ -96,10 +221,11 @@ function getHTMLOfSelection() {
     }
 }
 
-function getSelectionAndDom() {
+function getSelectionAndDom(options = {}) {
+    const extractionOptions = typeof options === "object" && options !== null ? options : {};
     return {
         selection: getHTMLOfSelection(),
-        dom: getHTMLOfDocument()
+        dom: extractionOptions.chatgptMode ? getHTMLOfChatGptDocument() : getHTMLOfDocument()
     }
 }
 
