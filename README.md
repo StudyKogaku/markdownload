@@ -16,8 +16,6 @@ This repository is a fork of the original [MarkDownload](https://github.com/deat
 Main fork-specific changes:
 - Added `Copy` and `Copy selected` actions in the popup for sending markdown directly to other tools without downloading a file first.
 - Added a `Full Page` clipping mode in the popup, alongside the existing article and selection-based clipping modes.
-- Preserved full-page DOM content for conversion so pages such as LMS forums can include replies and other content outside the main article extracted by Readability.
-- Switched the content extraction cleanup to operate on a cloned DOM instead of mutating the live page.
 
 These changes are fork-specific and are not part of the upstream project unless they are merged there later.
 

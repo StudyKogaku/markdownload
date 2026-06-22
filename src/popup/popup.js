@@ -103,37 +103,48 @@ const showOrHideClipOption = selection => {
     document.getElementById("selected").style.display = selection ? "inline-block" : "none";
 }
 
-const clipSite = id => {
-    return browser.tabs.executeScript(id, { code: "getSelectionAndDom()" })
-        .then((result) => {
-            if (result && result[0]) {
-                showOrHideClipOption(result[0].selection);
-                let message = {
-                    type: "clip",
-                    dom: result[0].dom,
-                    selection: result[0].selection
-                }
-                return browser.storage.sync.get(defaultOptions).then(options => {
+const clipSite = (id) => {
+    return browser.storage.sync.get(defaultOptions).then(options => {
+        return browser.tabs.executeScript(id, { code: "getSelectionAndDom()" })
+            .then((result) => {
+                if (result && result[0]) {
+                    showOrHideClipOption(result[0].selection);
+                    let message = {
+                        type: "clip",
+                        dom: result[0].dom,
+                        selection: result[0].selection
+                    }
                     browser.runtime.sendMessage({
                         ...message,
                         ...options
                     });
-                }).catch(err => {
-                    console.error(err);
-                    showError(err)
+                }
+            }).catch(err => {
+                console.error(err);
+                showError(err);
+            });
+    }).catch(err => {
+        console.error(err);
+        showError(err);
+        return browser.tabs.executeScript(id, { code: "getSelectionAndDom()" })
+            .then((result) => {
+                if (result && result[0]) {
+                    showOrHideClipOption(result[0].selection);
+                    let message = {
+                        type: "clip",
+                        dom: result[0].dom,
+                        selection: result[0].selection
+                    };
                     return browser.runtime.sendMessage({
                         ...message,
                         ...defaultOptions
                     });
-                }).catch(err => {
-                    console.error(err);
-                    showError(err)
-                });
-            }
-        }).catch(err => {
-            console.error(err);
-            showError(err)
-        });
+                }
+            }).catch(fallbackErr => {
+                console.error(fallbackErr);
+                showError(fallbackErr);
+            });
+    });
 }
 
 // inject the necessary scripts
