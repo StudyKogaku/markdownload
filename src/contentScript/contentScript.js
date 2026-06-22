@@ -4,26 +4,31 @@ function notifyExtension() {
 }
 
 function getHTMLOfDocument() {
+    // 変更: 取得処理によって表示中のページを変更しないよう，複製したDOMだけを加工する
+    const clonedDocument = document.documentElement.cloneNode(true);
+    const clonedHead = clonedDocument.querySelector('head');
+    const clonedBody = clonedDocument.querySelector('body');
+
     // make sure a title tag exists so that pageTitle is not empty and
     // a filename can be genarated.
-    if (document.head.getElementsByTagName('title').length == 0) {
+    if (clonedHead.getElementsByTagName('title').length == 0) {
         let titleEl = document.createElement('title');
         // prepate a good default text (the text displayed in the window title)
         titleEl.innerText = document.title;
-        document.head.append(titleEl);
+        clonedHead.append(titleEl);
     }
 
     // if the document doesn't have a "base" element make one
     // this allows the DOM parser in future steps to fix relative uris
 
-    let baseEls = document.head.getElementsByTagName('base');
+    let baseEls = clonedHead.getElementsByTagName('base');
     let baseEl;
 
     if (baseEls.length > 0) {
         baseEl = baseEls[0];
     } else {
         baseEl = document.createElement('base');
-        document.head.append(baseEl);
+        clonedHead.append(baseEl);
     }
 
     // make sure the 'base' element always has a good 'href`
@@ -38,35 +43,34 @@ function getHTMLOfDocument() {
     }
 
     // remove the hidden content from the page
-    removeHiddenNodes(document.body);
+    removeHiddenNodes(clonedBody, document.body);
 
     // get the content of the page as a string
-    return document.documentElement.outerHTML;
+    return clonedDocument.outerHTML;
 }
 
 // code taken from here: https://www.reddit.com/r/javascript/comments/27bcao/anyone_have_a_method_for_finding_all_the_hidden/
-function removeHiddenNodes(root) {
-    let nodeIterator, node,i = 0;
+function removeHiddenNodes(root, sourceRoot) {
+    const clonedNodes = Array.from(root.querySelectorAll('*'));
+    const sourceNodes = Array.from(sourceRoot.querySelectorAll('*'));
+    const nodesToRemove = [];
 
-    nodeIterator = document.createNodeIterator(root, NodeFilter.SHOW_ELEMENT, function(node) {
+    sourceNodes.forEach((node, index) => {
       let nodeName = node.nodeName.toLowerCase();
       if (nodeName === "script" || nodeName === "style" || nodeName === "noscript" || nodeName === "math") {
-        return NodeFilter.FILTER_REJECT;
+        nodesToRemove.push(clonedNodes[index]);
+        return;
       }
       if (node.offsetParent === void 0) {
-        return NodeFilter.FILTER_ACCEPT;
+        return;
       }
       let computedStyle = window.getComputedStyle(node, null);
       if (computedStyle.getPropertyValue("visibility") === "hidden" || computedStyle.getPropertyValue("display") === "none") {
-        return NodeFilter.FILTER_ACCEPT;
+        nodesToRemove.push(clonedNodes[index]);
       }
     });
 
-    while ((node = nodeIterator.nextNode()) && ++i) {
-      if (node.parentNode instanceof HTMLElement) {
-        node.parentNode.removeChild(node);
-      }
-    }
+    nodesToRemove.forEach(node => node?.remove());
     return root
   }
 

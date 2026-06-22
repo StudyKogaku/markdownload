@@ -538,7 +538,7 @@ async function notify(message) {
   // message for initial clipping of the dom
   if (message.type == "clip") {
     // get the article info from the passed in dom
-    const article = await getArticleFromDom(message.dom);
+    const article = await getArticleFromDom(message.dom, message.clipFullPage);
 
     // if selection info was passed in (and we're to clip the selection)
     // replace the article content
@@ -671,7 +671,7 @@ async function ensureScripts(tabId) {
 }
 
 // get Readability article info from the dom passed in
-async function getArticleFromDom(domString) {
+async function getArticleFromDom(domString, clipFullPage = false) {
   // parse the dom
   const parser = new DOMParser();
   const dom = parser.parseFromString(domString, "text/html");
@@ -756,8 +756,18 @@ async function getArticleFromDom(domString) {
   // mime type was used when the DOM was created.
   dom.documentElement.removeAttribute('class')
 
+  // 変更: 全文モードで利用するbodyをReadabilityによるDOM変更前に保存する
+  const fullPageContent = dom.body.innerHTML;
+
   // simplify the dom into an article
   const article = new Readability(dom).parse();
+
+  // 変更: LMSのフォーラム返信など，単一記事の外側にある内容も取得できるようにする
+  if (clipFullPage) {
+    article.content = fullPageContent;
+    article.textContent = parser.parseFromString(fullPageContent, "text/html").body.textContent;
+    article.length = article.textContent.length;
+  }
 
   // get the base uri from the dom and attach it as important article info
   article.baseURI = dom.baseURI;

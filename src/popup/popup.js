@@ -32,6 +32,7 @@ document.getElementById("copySelection").addEventListener("click", copySelection
 const defaultOptions = {
     includeTemplate: false,
     clipSelection: true,
+    clipFullPage: false,
     downloadImages: false
 }
 
@@ -44,14 +45,19 @@ const checkInitialSettings = options => {
 
     if (options.clipSelection)
         document.querySelector("#selected").classList.add("checked");
+    else if (options.clipFullPage)
+        document.querySelector("#fullPage").classList.add("checked");
     else
         document.querySelector("#document").classList.add("checked");
 }
 
-const toggleClipSelection = options => {
-    options.clipSelection = !options.clipSelection;
-    document.querySelector("#selected").classList.toggle("checked");
-    document.querySelector("#document").classList.toggle("checked");
+// 変更: 選択範囲・記事・ページ全体を排他的に切り替える
+const setClipMode = (options, mode) => {
+    options.clipSelection = mode === "selection";
+    options.clipFullPage = mode === "fullPage";
+    document.querySelector("#selected").classList.toggle("checked", options.clipSelection);
+    document.querySelector("#document").classList.toggle("checked", mode === "article");
+    document.querySelector("#fullPage").classList.toggle("checked", options.clipFullPage);
     browser.storage.sync.set(options).then(() => clipSite()).catch((error) => {
         console.error(error);
     });
@@ -92,12 +98,9 @@ const toggleDownloadImages = options => {
     });
 }
 const showOrHideClipOption = selection => {
-    if (selection) {
-        document.getElementById("clipOption").style.display = "flex";
-    }
-    else {
-        document.getElementById("clipOption").style.display = "none";
-    }
+    // 変更: ArticleとFull Pageは常に選べるようにし，選択範囲ボタンだけを切り替える
+    document.getElementById("clipOption").style.display = "flex";
+    document.getElementById("selected").style.display = selection ? "inline-block" : "none";
 }
 
 const clipSite = id => {
@@ -139,11 +142,15 @@ browser.storage.sync.get(defaultOptions).then(options => {
     
     document.getElementById("selected").addEventListener("click", (e) => {
         e.preventDefault();
-        toggleClipSelection(options);
+        setClipMode(options, "selection");
     });
     document.getElementById("document").addEventListener("click", (e) => {
         e.preventDefault();
-        toggleClipSelection(options);
+        setClipMode(options, "article");
+    });
+    document.getElementById("fullPage").addEventListener("click", (e) => {
+        e.preventDefault();
+        setClipMode(options, "fullPage");
     });
     document.getElementById("includeTemplate").addEventListener("click", (e) => {
         e.preventDefault();
@@ -277,4 +284,3 @@ function showError(err) {
     document.getElementById("spinner").style.display = 'none';
     cm.setValue(`Error clipping the page\n\n${err}`)
 }
-
