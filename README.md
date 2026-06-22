@@ -9,6 +9,18 @@ Selecting text will allow you to download just the selected text
 
 See the [Markdownload User Guide](https://github.com/deathau/markdownload/blob/master/user-guide.md#markdownload-user-guide) for more details on the functionality of this extension
 
+## Fork Notes
+
+This repository is a fork of the original [MarkDownload](https://github.com/deathau/markdownload).
+
+Main fork-specific changes:
+- Added `Copy` and `Copy selected` actions in the popup for sending markdown directly to other tools without downloading a file first.
+- Added a `Full Page` clipping mode in the popup, alongside the existing article and selection-based clipping modes.
+- Preserved full-page DOM content for conversion so pages such as LMS forums can include replies and other content outside the main article extracted by Readability.
+- Switched the content extraction cleanup to operate on a cloned DOM instead of mutating the live page.
+
+These changes are fork-specific and are not part of the upstream project unless they are merged there later.
+
 # Installation
 The extension is available for [Firefox](https://addons.mozilla.org/en-GB/firefox/addon/markdownload/), [Google Chrome](https://chrome.google.com/webstore/detail/markdownload-markdown-web/pcmpcfapbekmbjjkdalcgopdkipoggdi), [Microsoft Edge](https://microsoftedge.microsoft.com/addons/detail/hajanaajapkhaabfcofdjgjnlgkdkknm) and [Safari](https://apple.co/3tcU0pD).
 
